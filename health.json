@@ -1,11 +1,33 @@
 {
   "status": "operational",
-  "generatedAt": "2026-11-26T00:00:00Z",
-  "version": "1.0.0",
-  "checks": [
-    { "id": "api", "name": "Core API Gateway", "status": "operational", "latencyMs": 42, "uptime": "99.98%" },
-    { "id": "web", "name": "Web Frontend", "status": "operational", "latencyMs": 28, "uptime": "99.99%" },
-    { "id": "worker", "name": "Background Jobs", "status": "operational", "latencyMs": 65, "uptime": "99.95%" }
+  "version": 1,
+  "services": [
+    {
+      "id": "api",
+      "name": "Core API Gateway",
+      "status": "operational",
+      "latencyMs": 42,
+      "uptime": "99.98%"
+    },
+    {
+      "id": "web",
+      "name": "Web Frontend",
+      "status": "operational",
+      "latencyMs": 28,
+      "uptime": "99.99%"
+    },
+    {
+      "id": "worker",
+      "name": "Background Jobs",
+      "status": "operational",
+      "latencyMs": 65,
+      "uptime": "99.95%"
+    }
   ],
-  "summary": { "total": 3, "degraded": 0, "allOperational": true }
+  "checkedAt": "2026-11-26T07:11:56.865Z",
+  "summary": {
+    "total": 3,
+    "degraded": 0,
+    "allOperational": true
+  }
 }

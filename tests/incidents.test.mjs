@@ -59,8 +59,8 @@ test('buildHealthPayload mirrors service state', () => {
   const payload = buildHealthPayload(SERVICES, new Date('2026-11-26T00:00:00Z'))
   assert.equal(payload.status, 'operational')
   assert.equal(payload.summary.total, 3)
-  assert.equal(payload.checks.length, 3)
-  assert.equal(payload.generatedAt, '2026-11-26T00:00:00.000Z')
+  assert.equal(payload.services.length, 3)
+  assert.equal(payload.checkedAt, '2026-11-26T00:00:00.000Z')
 })
 
 test('formatDuration renders minutes and hours', () => {

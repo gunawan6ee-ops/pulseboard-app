@@ -17,6 +17,13 @@
       <button id="refresh-btn" class="btn" type="button">Refresh Checks</button>
     </header>
 
+    <div class="status-filters" role="group" aria-label="Filter services by status">
+      <button class="chip active" type="button" data-filter-status="all">All</button>
+      <button class="chip" type="button" data-filter-status="operational">Operational</button>
+      <button class="chip" type="button" data-filter-status="degraded">Degraded</button>
+      <button class="chip" type="button" data-filter-status="down">Down</button>
+    </div>
+
     <section class="grid" id="services-grid" aria-label="Service status list"></section>
 
     <section class="panel" aria-labelledby="incidents-heading">

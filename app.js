@@ -12,6 +12,8 @@ export const STATUS_LABEL = {
   down: 'Down',
 }
 
+export const HEALTH_VERSION = 1
+
 export function summarizeStatus(services = SERVICES) {
   const degraded = services.filter((s) => s.status !== 'operational')
   return {
@@ -21,32 +23,48 @@ export function summarizeStatus(services = SERVICES) {
   }
 }
 
+/** Overall badge state derived from service array — never stored. */
+export function deriveOverallStatus(services = SERVICES) {
+  if (services.some((s) => s.status === 'down')) return 'outage'
+  if (services.some((s) => s.status !== 'operational')) return 'degraded'
+  return 'operational'
+}
+
 export function filterServices(services = SERVICES, status = 'all') {
   if (status === 'all') return [...services]
   return services.filter((s) => s.status === status)
 }
 
+/** Options for the service filter <select>, derived from the data layer. */
+export function serviceOptions(services = SERVICES) {
+  return services.map((s) => ({ id: s.id, name: s.name }))
+}
+
+/** health.json public contract v1 — additive-only evolution. */
 export function buildHealthPayload(services = SERVICES, now = new Date()) {
   const summary = summarizeStatus(services)
   return {
-    status: summary.allOperational ? 'operational' : 'degraded',
-    generatedAt: now.toISOString(),
-    version: '1.0.0',
-    checks: services.map((s) => ({
+    status: deriveOverallStatus(services),
+    version: HEALTH_VERSION,
+    services: services.map((s) => ({
       id: s.id,
       name: s.name,
       status: s.status,
       latencyMs: s.latencyMs,
       uptime: s.uptime,
     })),
+    checkedAt: now.toISOString(),
     summary: { total: summary.totalCount, degraded: summary.degradedCount, allOperational: summary.allOperational },
   }
 }
 
 export function formatDuration(minutes) {
-  if (minutes < 60) return `${minutes}m`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
+  const value = Number(minutes)
+  if (!Number.isFinite(value) || value < 0) return '0m'
+  const total = Math.round(value)
+  if (total < 60) return `${total}m`
+  const h = Math.floor(total / 60)
+  const m = total % 60
   return m === 0 ? `${h}h` : `${h}h ${m}m`
 }
 
@@ -71,25 +89,37 @@ function renderServices(statusFilter) {
 }
 
 function renderIncidents({ severity = 'all', serviceId = 'all' } = {}) {
-  const list = document.getElementById('incident-list')
+  const list = document.getElementById('incident-timeline')
+  const empty = document.getElementById('incident-empty')
   if (!list) return
   const rows = sortIncidents(filterIncidents(INCIDENTS, { severity, serviceId }))
-  list.innerHTML = rows.length
-    ? rows
-        .map(
-          (i) => `
+  list.innerHTML = rows
+    .map(
+      (i) => `
       <li class="incident" data-severity="${i.severity}">
-        <div class="incident-head">
-          <span class="sev sev-${i.severity}">${i.severity}</span>
-          <strong>${i.title}</strong>
+        <div class="incident-top">
+          <span class="sev-badge" data-severity="${i.severity}">${i.severity}</span>
+          <span class="incident-title">${i.title}</span>
           ${isActive(i) ? '<span class="live">ONGOING</span>' : ''}
         </div>
-        <p class="meta">${i.id} · ${i.serviceId} · ${formatDuration(durationMinutes(i))} · ${new Date(i.startedAt).toLocaleString()}</p>
+        <p class="incident-meta">${i.id} · ${i.serviceId} · ${formatDuration(durationMinutes(i))} · ${new Date(i.startedAt).toLocaleString()}</p>
         <p class="incident-summary">${i.summary}</p>
       </li>`
-        )
-        .join('')
-    : '<li class="empty">No incidents match this filter.</li>'
+    )
+    .join('')
+  if (empty) empty.hidden = rows.length > 0
+}
+
+function populateServiceFilter() {
+  const select = document.getElementById('service-filter')
+  if (!select || select.dataset.populated === 'true') return
+  for (const option of serviceOptions(SERVICES)) {
+    const el = document.createElement('option')
+    el.value = option.id
+    el.textContent = option.name
+    select.append(el)
+  }
+  select.dataset.populated = 'true'
 }
 
 export function renderDashboard(state = { status: 'all', severity: 'all', serviceId: 'all' }) {
@@ -98,11 +128,11 @@ export function renderDashboard(state = { status: 'all', severity: 'all', servic
   const updated = document.getElementById('last-updated')
   if (!badge || !updated) return
 
+  const overall = deriveOverallStatus(SERVICES)
   const summary = summarizeStatus(SERVICES)
-  badge.textContent = summary.allOperational
-    ? 'ALL SYSTEMS OPERATIONAL'
-    : `${summary.degradedCount} SERVICE(S) DEGRADED`
-  badge.dataset.state = summary.allOperational ? 'ok' : 'warn'
+  badge.textContent =
+    overall === 'operational' ? 'ALL SYSTEMS OPERATIONAL' : `${summary.degradedCount} SERVICE(S) DEGRADED`
+  badge.dataset.state = overall === 'operational' ? 'ok' : 'warn'
 
   renderServices(state.status)
   renderIncidents(state)
@@ -112,6 +142,7 @@ export function renderDashboard(state = { status: 'all', severity: 'all', servic
 if (typeof document !== 'undefined') {
   const state = { status: 'all', severity: 'all', serviceId: 'all' }
   document.addEventListener('DOMContentLoaded', () => {
+    populateServiceFilter()
     renderDashboard(state)
     document.getElementById('refresh-btn')?.addEventListener('click', () => renderDashboard(state))
     document.querySelectorAll('[data-filter-status]').forEach((btn) =>
