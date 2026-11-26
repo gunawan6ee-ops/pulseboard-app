@@ -69,6 +69,38 @@ export function formatDuration(minutes) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`
 }
 
+/**
+ * Normalize an uptime value ("99.98%", "99.98", 99.98) to a number in 0..100.
+ * Returns null for unusable input so callers can sort/threshold without NaN drift.
+ */
+export function uptimeToPercent(uptime) {
+  if (typeof uptime === 'number') {
+    return Number.isFinite(uptime) ? clampPercent(uptime) : null
+  }
+  if (typeof uptime !== 'string') return null
+  const parsed = Number.parseFloat(uptime.replace('%', '').trim())
+  return Number.isFinite(parsed) ? clampPercent(parsed) : null
+}
+
+function clampPercent(value) {
+  return Math.min(100, Math.max(0, value))
+}
+
+/** Render a normalized uptime number back to display form, e.g. 99.98 -> "99.98%". */
+export function formatUptime(uptime) {
+  const percent = uptimeToPercent(uptime)
+  if (percent === null) return '—'
+  return `${percent.toFixed(2)}%`
+}
+
+/** Services below the SLA floor, sorted worst-first. Unknown uptime sorts last. */
+export function servicesBelowSla(services = SERVICES, floor = 99.9) {
+  return services
+    .map((service) => ({ ...service, uptimePercent: uptimeToPercent(service.uptime) }))
+    .filter((service) => service.uptimePercent !== null && service.uptimePercent < floor)
+    .sort((a, b) => a.uptimePercent - b.uptimePercent)
+}
+
 function renderServices(statusFilter) {
   const grid = document.getElementById('services-grid')
   if (!grid) return
