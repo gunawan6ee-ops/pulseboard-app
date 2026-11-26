@@ -9,6 +9,7 @@
     "build:health": "node scripts/build-health.mjs",
     "verify:health": "node scripts/build-health.mjs --check",
     "verify:live": "node scripts/verify-live.mjs",
+    "live:url": "node scripts/live-url.mjs",
     "dev": "npx --yes serve ."
   }
 }
