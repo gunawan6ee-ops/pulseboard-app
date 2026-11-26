@@ -7,7 +7,9 @@
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { dirname, extname, join, normalize } from 'node:path'
+import { dirname, extname, join, resolve, sep } from 'node:path'
+
+import { withSecurityHeaders } from './security-headers.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const START_PORT = Number(process.env.PORT ?? 4889)
@@ -20,16 +22,47 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8',
 }
 
+/**
+ * Decode a request path without throwing on malformed percent-encoding.
+ * `decodeURIComponent('%E0%A4%A')` throws URIError, which would otherwise
+ * crash the handler and drop the connection.
+ */
+export function safeDecode(rawPath) {
+  const path = (rawPath ?? '/').split('?')[0]
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
+  }
+}
+
+/**
+ * Resolve a request path to an absolute file inside ROOT.
+ * Returns null when the resolved path escapes the document root, so
+ * `../` traversal and absolute-path tricks cannot read outside the bundle.
+ */
+export function resolveSafePath(root, rawPath) {
+  const decoded = safeDecode(rawPath)
+  const rel = decoded === '/' || decoded === '' ? '/index.html' : decoded
+  const file = resolve(root, `.${rel.startsWith('/') ? rel : `/${rel}`}`)
+  const rootWithSep = root.endsWith(sep) ? root : `${root}${sep}`
+  if (file !== root && !file.startsWith(rootWithSep)) return null
+  return file
+}
+
 const server = createServer(async (req, res) => {
-  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0])
-  const rel = normalize(urlPath === '/' ? '/index.html' : urlPath).replace(/^(\.\.[/\\])+/, '')
-  const file = join(ROOT, rel)
+  const file = resolveSafePath(ROOT, req.url)
+  if (!file) {
+    res.writeHead(403, withSecurityHeaders({ 'content-type': 'text/plain; charset=utf-8' }))
+    res.end('Forbidden')
+    return
+  }
   try {
     const body = await readFile(file)
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' })
+    res.writeHead(200, withSecurityHeaders({ 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }))
     res.end(body)
   } catch {
-    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
+    res.writeHead(404, withSecurityHeaders({ 'content-type': 'text/plain; charset=utf-8' }))
     res.end('Not found')
   }
 })
@@ -46,4 +79,15 @@ server.on('error', (err) => {
 })
 
 server.on('listening', () => console.log(`OK: serving ${ROOT} on http://127.0.0.1:${port}/`))
-server.listen(port, '127.0.0.1')
+
+/**
+ * Only bind when executed directly. Importing this module from a test must not
+ * leave a listening handle behind, otherwise the node --test process never
+ * drains its event loop and the run times out.
+ */
+const invokedDirectly =
+  Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (invokedDirectly) server.listen(port, '127.0.0.1')
+
+export { server }

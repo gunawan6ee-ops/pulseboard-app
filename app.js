@@ -1,4 +1,5 @@
 import { INCIDENTS, filterIncidents, sortIncidents, durationMinutes, isActive } from './incidents.js'
+import { escapeHtml, escapeAttr } from './scripts/escape-html.mjs'
 
 export const SERVICES = [
   { id: 'api', name: 'Core API Gateway', status: 'operational', latencyMs: 42, uptime: '99.98%' },
@@ -78,10 +79,10 @@ function renderServices(statusFilter) {
           (s) => `
       <article class="card">
         <div class="card-top">
-          <strong>${s.name}</strong>
-          <span class="status-dot" data-status="${s.status}" title="${STATUS_LABEL[s.status] ?? s.status}"></span>
+          <strong>${escapeHtml(s.name)}</strong>
+          <span class="status-dot" data-status="${escapeAttr(s.status)}" title="${escapeAttr(STATUS_LABEL[s.status] ?? s.status)}"></span>
         </div>
-        <div class="meta">Latency: ${s.latencyMs} ms · Uptime: ${s.uptime}</div>
+        <div class="meta">Latency: ${escapeHtml(s.latencyMs)} ms · Uptime: ${escapeHtml(s.uptime)}</div>
       </article>`
         )
         .join('')
@@ -96,14 +97,14 @@ function renderIncidents({ severity = 'all', serviceId = 'all' } = {}) {
   list.innerHTML = rows
     .map(
       (i) => `
-      <li class="incident" data-severity="${i.severity}">
+      <li class="incident" data-severity="${escapeAttr(i.severity)}">
         <div class="incident-top">
-          <span class="sev-badge" data-severity="${i.severity}">${i.severity}</span>
-          <span class="incident-title">${i.title}</span>
+          <span class="sev-badge" data-severity="${escapeAttr(i.severity)}">${escapeHtml(i.severity)}</span>
+          <span class="incident-title">${escapeHtml(i.title)}</span>
           ${isActive(i) ? '<span class="live">ONGOING</span>' : ''}
         </div>
-        <p class="incident-meta">${i.id} · ${i.serviceId} · ${formatDuration(durationMinutes(i))} · ${new Date(i.startedAt).toLocaleString()}</p>
-        <p class="incident-summary">${i.summary}</p>
+        <p class="incident-meta">${escapeHtml(i.id)} · ${escapeHtml(i.serviceId)} · ${escapeHtml(formatDuration(durationMinutes(i)))} · ${escapeHtml(new Date(i.startedAt).toLocaleString())}</p>
+        <p class="incident-summary">${escapeHtml(i.summary)}</p>
       </li>`
     )
     .join('')
