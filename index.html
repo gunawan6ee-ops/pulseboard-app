@@ -19,9 +19,36 @@
 
     <section class="grid" id="services-grid" aria-label="Service status list"></section>
 
+    <section class="panel" aria-labelledby="incidents-heading">
+      <div class="panel-head">
+        <h2 id="incidents-heading">Incident History</h2>
+        <div class="filters" role="group" aria-label="Filter incidents">
+          <label class="filter">
+            <span>Severity</span>
+            <select id="severity-filter">
+              <option value="all">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="major">Major</option>
+              <option value="minor">Minor</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </label>
+          <label class="filter">
+            <span>Service</span>
+            <select id="service-filter">
+              <option value="all">All services</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <ol class="timeline" id="incident-timeline" aria-live="polite"></ol>
+      <p class="empty" id="incident-empty" hidden>No incidents match the current filters.</p>
+    </section>
+
     <footer class="footer">
       <span id="last-updated">Last checked: --</span>
       <span>Environment: <strong id="env-label">production</strong></span>
+      <span>Health endpoint: <a href="./health.json">/health.json</a></span>
     </footer>
   </main>
   <script type="module" src="./app.js"></script>
