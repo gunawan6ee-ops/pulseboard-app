@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard — Live Service Status</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <span class="badge" id="overall-badge">ALL SYSTEMS OPERATIONAL</span>
+        <h1>PulseBoard Status</h1>
+        <p class="subtitle">Real-time uptime and latency monitor</p>
+      </div>
+      <button id="refresh-btn" class="btn" type="button">Refresh Checks</button>
+    </header>
+
+    <section class="grid" id="services-grid" aria-label="Service status list"></section>
+
+    <footer class="footer">
+      <span id="last-updated">Last checked: --</span>
+      <span>Environment: <strong id="env-label">production</strong></span>
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
